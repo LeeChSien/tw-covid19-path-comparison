@@ -1,0 +1,22 @@
+{
+  "name": "台灣新冠疫情足跡比對",
+  "description": "透過您的 Google 定位紀錄比對您與確診者的足跡",
+  "version": null,
+  "manifest_version": 2,
+  "icons": {
+    "48": "icons/icon_48.png",
+    "128": "icons/icon_128.png"
+  },
+  "browser_action": {
+    "default_title": "台灣新冠疫情足跡比對"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "permissions": [
+    "http://*.google.com/*",
+    "https://*.google.com/*"
+  ]
+}
