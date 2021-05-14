@@ -1,5 +1,5 @@
 {
-  "name": "tw-covid19-outbreak-path-checker",
+  "name": "tw-covid19-path-comparison",
   "version": "0.0.1",
   "description": "Google location history checker for covid19 patient path comparison",
   "author": "Jason Lee <chsienlee@gmail.com>",

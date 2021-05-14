@@ -28,6 +28,11 @@ function fetchGoogleTimelineData(from, to) {
             name: `${moment(fromDate).format('YYYY-DD-MM')}_${moment(toDate).format('YYYY-DD-MM')}`,
             items: []
           }
+          if (responses[0].data.includes('https://accounts.google.com')) {
+            reject(new Error('code 302'))
+            return
+          }
+
           responses.forEach(response => {
             const kml = new DOMParser().parseFromString(response.data, 'application/xml')
             const gj = toGeoJSON.kml(kml)

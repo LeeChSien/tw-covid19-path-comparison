@@ -17,6 +17,7 @@
   },
   "permissions": [
     "http://*.google.com/*",
-    "https://*.google.com/*"
+    "https://*.google.com/*",
+    "https://gist.githubusercontent.com/*"
   ]
 }

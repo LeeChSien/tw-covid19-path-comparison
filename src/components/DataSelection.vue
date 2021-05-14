@@ -1,9 +1,9 @@
 <template>
   <div id="data-selection">
-    <b-alert :show="error429" dismissible variant="danger">
-      您尚未授權<br />
-      <a href="https://timeline.google.com/">請按這裡</a>
-      取得Google權限存取您的定位歷史紀錄，您的歷史紀錄不會被上傳到任何伺服器
+    <b-alert :show="error429 || error302" dismissible variant="danger">
+      尚未登入<br />
+      <a href="https://timeline.google.com/" target="_blank">請按這裡</a>
+      登入 Google Timeline 存取您的定位歷史紀錄，您的歷史紀錄不會被上傳到任何伺服器，登入完成請回到本頁面重新整理
     </b-alert>
     <b-form inline>
       <label class="my-label">比對我最近</label>
@@ -13,14 +13,22 @@
         </b-form-radio-group>
       </b-form-group>
       <b-button variant="primary" v-if="fetching">
-        <small>比對中，請稍待幾秒...<b-spinner small></b-spinner></small>
+        <small>取得資料中，請稍待幾秒...<b-spinner small></b-spinner></small>
       </b-button>
       <b-button variant="primary" v-else @click="fetchData">
         <small><b-icon icon="arrow-clockwise" scale="1.2"></b-icon></small>
       </b-button>
     </b-form>
     <p class="description">
-      本工具可以協助您比對您的Google定位紀錄以及確診者的足跡，如果您在確診者的足跡的300公尺的範圍內，會提醒您接近過高風險地區
+      本工具可以協助您比對Google定位紀錄以及確診者的足跡，如果您在確診者的足跡的300公尺的範圍內，會提醒您接近過高風險地區<br />
+      感謝 areong 整理
+      <a
+        href="https://www.google.com/maps/d/u/0/viewer?mid=1rrk8w7jJsZGXz_hSpi0q9no77cdhMC2z&ll=0%2C0&z=8"
+        target="_blank"
+      >
+        確診者足跡地圖
+      </a>
+      本工具也使用此資料內容
     </p>
   </div>
 </template>
@@ -43,6 +51,7 @@ export default {
       from: new Date(),
       to: new Date(),
       error429: false,
+      error302: false,
       fetching: false
     }
   },
@@ -58,8 +67,7 @@ export default {
       }
     },
     toDate() {
-      return new Date('2020/05/15')
-      // return new Date()
+      return new Date()
     }
   },
   created() {
@@ -78,17 +86,23 @@ export default {
 
       this.fetching = true
       this.error429 = false
-      chrome.runtime.sendMessage({ from: this.fromDate, to: this.toDate }, response => {
+      this.error302 = false
+      chrome.runtime.sendMessage({ event: 'FETCH_TIMELINE', from: this.fromDate, to: this.toDate }, response => {
         if (response.error !== null) {
-          if (response.error.message.includes('code 429')) {
+          this.fetching = false
+
+          if (!response.error.message) {
+            this.error302 = true
+            return
+          } else if (response.error.message.includes('code 429')) {
             this.error429 = true
           }
+
           this.$bvToast.toast(`取得資料時發生錯誤: ${response.error.message}`, {
             title: 'Error',
             toaster: 'b-toaster-bottom-right',
             variant: 'danger'
           })
-          this.fetching = false
           return
         }
         // Convert dates to dates (Cannot be handled in fetchGoogleTimelineData method due to content background serialization)
@@ -100,7 +114,7 @@ export default {
           e.duration = parseInt(e.duration)
           return e
         })
-        console.log(data)
+        console.log(response)
         this.$emit('data-updated', data)
         this.fetching = false
       })

@@ -1,6 +1,6 @@
 <template>
   <b-card-body>
-    <b-table striped hover :items="path" :fields="fields">
+    <b-table striped hover :items="pathData" :fields="fields">
       <template #cell(date)="data">
         <span v-b-tooltip.hover :title="`${data.value}`">{{ data.value | moment('YYYY/MM/DD') }}</span>
       </template>
@@ -21,7 +21,7 @@
 <script>
 export default {
   props: {
-    path: {
+    pathData: {
       type: Array,
       required: true
     }

@@ -1,12 +1,22 @@
 <template>
   <b-card-body>
-    <b-alert show variant="success" v-if="closePoints.length === 0">尚未發現您接近過高風險場所</b-alert>
+    <b-alert show variant="warning" v-if="isChecking">正在比對中...</b-alert>
+    <b-alert show variant="success" v-else-if="Object.keys(closePoints).length === 0">
+      尚未發現您接近過高風險場所
+    </b-alert>
     <b-alert show variant="danger" v-else>
       您可能接近過下列高風險場所：
       <ul>
-        <li v-for="closePoint in closePoints" :key="closePoint.name">
-          {{ closePoint.name }},
-          {{ closePoint.address }}
+        <li v-for="name in Object.keys(closePoints)" :key="name">
+          <a
+            :href="
+              `https://www.google.com/maps/search/?api=1&query=${closePoints[name].entry.location.lat},${closePoints[name].entry.location.lng}`
+            "
+            target="_blank"
+          >
+            [{{ closePoints[name].entry.date | moment('YYYY/MM/DD') }}] {{ name }},{{ closePoints[name].entry.address
+            }}{{ closePoints[name].description ? `(${closePoints[name].description})` : '' }}
+          </a>
         </li>
       </ul>
       <hr />
@@ -22,51 +32,71 @@
 </template>
 
 <script>
-import { getDistance } from 'geolib'
-
 export default {
   props: {
     data: {
       type: Object,
       required: true
     },
-    path: {
+    openSourcePathData: {
       type: Array,
+      required: true
+    },
+    selfMaintainPathData: {
+      type: Array,
+      required: true
+    },
+    isOpenSourcePathDataFetched: {
+      type: Boolean,
+      required: true
+    },
+    isSelfMaintainPathDataFetched: {
+      type: Boolean,
       required: true
     }
   },
-  computed: {
-    closePoints() {
-      if (this.data.items.length === 0) {
-        return []
-      } else {
-        const _closePoints = []
-        for (const myPoint of this.data.items) {
-          const myLat =
-            myPoint.raw.geometry.coordinates[0].length > 0
-              ? myPoint.raw.geometry.coordinates[0][1]
-              : myPoint.raw.geometry.coordinates[1]
-          const myLng =
-            myPoint.raw.geometry.coordinates[0].length > 0
-              ? myPoint.raw.geometry.coordinates[0][0]
-              : myPoint.raw.geometry.coordinates[0]
-
-          for (const riskPoint of this.path) {
-            if (!riskPoint.location.lat || !riskPoint.location.lng) {
-              continue
+  data() {
+    return {
+      isChecking: false,
+      closePoints: {}
+    }
+  },
+  watch: {
+    $props: {
+      handler() {
+        if (
+          this.data &&
+          this.data.items.length > 0 &&
+          this.isOpenSourcePathDataFetched &&
+          this.isSelfMaintainPathDataFetched
+        ) {
+          console.log('ok')
+          this.isChecking = true
+          chrome.runtime.sendMessage(
+            {
+              event: 'COMPARE',
+              myHistory: this.data,
+              pathSetA: this.openSourcePathData,
+              pathSetB: this.selfMaintainPathData
+            },
+            response => {
+              console.log(response)
+              this.isChecking = false
+              if (response.error !== null) {
+                this.$bvToast.toast(`比對資料時發生錯誤: ${response.error.message}`, {
+                  title: 'Error',
+                  toaster: 'b-toaster-bottom-right',
+                  variant: 'danger'
+                })
+                return
+              }
+              this.closePoints = response.closePoints
             }
-            const distance = getDistance(
-              { latitude: myLat, longitude: myLng },
-              { latitude: riskPoint.location.lat, longitude: riskPoint.location.lng }
-            )
-
-            if (distance < 300 && myPoint.timeBegin > riskPoint.date && !_closePoints.includes(riskPoint)) {
-              _closePoints.push(riskPoint)
-            }
-          }
+          )
         }
-        return _closePoints
-      }
+      },
+      deep: true,
+      immediate: true
     }
   }
 }
